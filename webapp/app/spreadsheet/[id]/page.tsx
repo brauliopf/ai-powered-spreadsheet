@@ -16,7 +16,9 @@ export default function SpreadsheetPage() {
 
   // UI state
   const [isDialogColumnTypeOpen, setIsDialogColumnTypeOpen] = useState(false);
-  const [targetColumn, setTargetColumn] = useState<string | null>(null);
+  const [targetDialogColumn, setTargetDialogColumn] = useState<string | null>(
+    null
+  );
 
   // Local Handlers
   const [spreadsheetName, setSpreadsheetName] =
@@ -61,7 +63,7 @@ export default function SpreadsheetPage() {
     setRows(newRows);
   };
 
-  const toggleColumnType = (columnName: string) => {
+  const toggleColumnType = (columnName: string, prompt: string) => {
     // if switching to ai-trigger, get prompt
     if (columnTypes[columnName] === 'regular') {
       // display a modal with a brief explanation of the column type and a text input
@@ -70,12 +72,13 @@ export default function SpreadsheetPage() {
       "@COLUMN_NAME".`;
 
       try {
+        console.log('HERE!!!', columnName, prompt);
       } catch (error) {
-        console.error(error);
+        // console.error(error);
       }
 
       // Open the dialog and set target column
-      setTargetColumn(columnName);
+      setTargetDialogColumn(columnName);
       setIsDialogColumnTypeOpen(true);
       return; // Don't toggle type yet, wait for dialog input
     }
@@ -98,7 +101,6 @@ export default function SpreadsheetPage() {
             <Link href="/">
               <Button variant="ghost" size="sm">
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Home
               </Button>
             </Link>
             <input
@@ -130,11 +132,25 @@ export default function SpreadsheetPage() {
             onAddColumn={addColumn}
             isDialogColumnTypeOpen={isDialogColumnTypeOpen}
             setIsDialogColumnTypeOpen={setIsDialogColumnTypeOpen}
-            targetColumn={targetColumn}
-            setTargetColumn={setTargetColumn}
+            targetDialogColumn={targetDialogColumn}
+            setTargetDialogColumn={setTargetDialogColumn}
           />
         </div>
       </main>
     </div>
   );
 }
+
+// // parse the prompt to get the column references
+// const prompt = inputDialogChangeTypeValue;
+// const columnReferences = prompt.match(/@[a-zA-Z]+/g); // @Major, @Name, etc.
+
+// if (targetDialogColumn) {
+//   console.log('targetDialogColumn', prompt, rows, targetDialogColumn);
+//   // Update all cells in the column
+//   rows.forEach((_, rowIndex) => {
+//     onUpdateCell(rowIndex, targetDialogColumn, inputValue);
+//   });
+//   setInputValue('');
+//   setIsDialogColumnTypeOpen(false);
+// }

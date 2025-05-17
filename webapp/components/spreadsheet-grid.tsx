@@ -17,33 +17,34 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 
 interface SpreadsheetGridProps {
   columnNames: string[];
-  rows: Record<string, any>[];
   columnTypes: Record<string, 'regular' | 'ai-trigger'>;
+  rows: Record<string, string>[];
   onUpdateCell: (rowIndex: number, columnName: string, value: string) => void;
-  onToggleColumnType: (columnName: string) => void;
+  onToggleColumnType: (columnName: string, prompt: string) => void;
   onAddRow: () => void;
   onAddColumn: () => void;
   isDialogColumnTypeOpen: boolean;
   setIsDialogColumnTypeOpen: (isOpen: boolean) => void;
-  targetColumn: string | null;
-  setTargetColumn: (column: string | null) => void;
+  targetDialogColumn: string | null;
+  setTargetDialogColumn: (column: string | null) => void;
 }
 
 export default function SpreadsheetGrid({
   columnNames,
-  rows,
   columnTypes,
+  rows,
   onUpdateCell,
   onToggleColumnType,
   onAddRow,
   onAddColumn,
   isDialogColumnTypeOpen,
   setIsDialogColumnTypeOpen,
-  targetColumn,
-  setTargetColumn,
+  targetDialogColumn,
+  setTargetDialogColumn,
 }: SpreadsheetGridProps) {
   const [selectedCell, setSelectedCell] = useState<{
     row: number;
@@ -53,7 +54,8 @@ export default function SpreadsheetGrid({
     row: number;
     col: string;
   } | null>(null);
-  const [inputValue, setInputValue] = useState('');
+  const [inputDialogChangeTypeValue, setInputDialogChangeTypeValue] =
+    useState('');
 
   const handleCellClick = (rowIndex: number, columnName: string) => {
     setSelectedCell({ row: rowIndex, col: columnName });
@@ -81,20 +83,32 @@ export default function SpreadsheetGrid({
     onUpdateCell(rowIndex, columnName, value);
   };
 
-  const openColumnDialog = (columnName: string) => {
-    setTargetColumn(columnName);
+  const handleClickChangeColumnType = (columnName: string) => {
+    // if current type is ai-trigger, handle switch to regular type directly
+    if (columnTypes[columnName] === 'ai-trigger') {
+      onToggleColumnType(columnName, '_'); // prompt not relevant
+      return;
+    }
+
+    // if current type is regular, open dialog to get prompt
+    setInputDialogChangeTypeValue(
+      'Evaluate if someone with a major in @Major is likely an engineer.'
+    );
+    setTargetDialogColumn(columnName);
     setIsDialogColumnTypeOpen(true);
+    return;
   };
 
-  const handleDialogSubmit = () => {
-    if (targetColumn && inputValue) {
-      // Update all cells in the column (example implementation)
-      rows.forEach((_, rowIndex) => {
-        onUpdateCell(rowIndex, targetColumn, inputValue);
-      });
-      setInputValue('');
-      setIsDialogColumnTypeOpen(false);
+  const handleChangeColumnTypeSubmit = () => {
+    // let page do the work (toggleColumnType). sent it the column and the prompt.
+    if (targetDialogColumn) {
+      onToggleColumnType(targetDialogColumn, inputDialogChangeTypeValue);
+    } else {
+      console.error('TODO: REMOVE THIS --targetDialogColumn is null');
     }
+    setInputDialogChangeTypeValue('');
+    setTargetDialogColumn(null);
+    setIsDialogColumnTypeOpen(false);
   };
 
   return (
@@ -125,16 +139,11 @@ export default function SpreadsheetGrid({
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
-                            onClick={() => onToggleColumnType(column)}
+                            onClick={() => handleClickChangeColumnType(column)}
                           >
                             {columnTypes[column] === 'regular'
                               ? 'Convert to AI-trigger'
                               : 'Convert to regular'}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => openColumnDialog(column)}
-                          >
-                            Edit Column Data
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -211,17 +220,25 @@ export default function SpreadsheetGrid({
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Column Options</DialogTitle>
+            <DialogTitle>Create AI-triggered column</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <p>Edit all cells in column: {targetColumn || ''}</p>
+            <p>
+              All cells in the target column ({targetDialogColumn}) will be
+              updated with the new AI-generated content.
+            </p>
+            <p>Prompt:</p>
             <div className="flex space-x-2">
-              <Input
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                placeholder="Enter value for all cells"
+              <Textarea
+                value={inputDialogChangeTypeValue}
+                placeholder="Enter prompt to generate content for all cells"
+                onChange={(e) => setInputDialogChangeTypeValue(e.target.value)}
+                disabled={true}
+                className="min-h-[80px]"
               />
-              <Button onClick={handleDialogSubmit}>Apply to All</Button>
+              <Button onClick={handleChangeColumnTypeSubmit}>
+                Apply to All
+              </Button>
             </div>
           </div>
         </DialogContent>

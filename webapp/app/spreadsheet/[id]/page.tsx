@@ -1,25 +1,52 @@
 'use client';
 
 import type React from 'react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useSearchParams, usePathname } from 'next/navigation';
 import SpreadsheetGrid from '@/components/spreadsheet-grid';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Save } from 'lucide-react';
 import Link from 'next/link';
+import { templates } from '@/lib/templates';
 
 export default function SpreadsheetPage() {
   const [columns, setColumns] = useState<
     Record<string, 'regular' | 'ai-trigger'>
-  >({}); // map of column name to type
-  const [rows, setRows] = useState<Record<string, string>[]>([]); // map of column name to value
-
-  // UI state
-  const [targetColumnTypeDialog, setTargetColumnTypeDialog] = useState<
-    string | null
-  >(null);
-  const [isDialogColumnTypeOpen, setIsDialogColumnTypeOpen] = useState(false);
+  >({});
+  const [rows, setRows] = useState<Record<string, string>[]>([]);
   const [spreadsheetName, setSpreadsheetName] =
     useState<string>('New Spreadsheet');
+
+  // Navigation hooks
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const templateParam = searchParams.get('template');
+
+  // Load template if URL is /new and template parameter exists
+  useEffect(() => {
+    async function loadTemplate() {
+      if (pathname.endsWith('/new') && templateParam) {
+        try {
+          // Dynamic import to load the template
+          const template = templates[templateParam as keyof typeof templates];
+
+          if (template) {
+            console.log('DEBUG: template', template.columns);
+            // Set data from template
+            setColumns(
+              template.columns as Record<string, 'regular' | 'ai-trigger'>
+            );
+            setRows(template.rows || []);
+            setSpreadsheetName(template.name || 'New Spreadsheet');
+          }
+        } catch (error) {
+          console.error(`Failed to load template: ${templateParam}`, error);
+        }
+      }
+    }
+
+    loadTemplate();
+  }, [pathname, templateParam]);
 
   // Local Handlers
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -63,7 +90,6 @@ export default function SpreadsheetPage() {
   };
 
   const toggleColumnType = (columnName: string, prompt: string) => {
-    console.log('toggleColumnType: START', columnName, prompt);
     // if switching to regular, just switch
     if (columns[columnName] === 'ai-trigger') {
       setColumns({ ...columns, [columnName]: 'regular' });
@@ -72,12 +98,7 @@ export default function SpreadsheetPage() {
 
     // if switching to ai-trigger: set AI function, run it, and update the column type
     if (columns[columnName] === 'regular') {
-      // display a modal with a brief explanation of the column type and a text input
-      const aiFunctionDescription = `This column is used to trigger an AI function. For now, the AI is configured to respond TRUE/FALSE and give a reasoning. Please provide a prompt for the AI to respond to. You can refer to other columns with 
-      "@COLUMN_NAME".`;
-
       try {
-        console.log('HERE!!!', columnName, prompt);
       } catch (error) {
         // console.error(error);
       }
@@ -131,17 +152,3 @@ export default function SpreadsheetPage() {
     </div>
   );
 }
-
-// // parse the prompt to get the column references
-// const prompt = inputDialogChangeTypeValue;
-// const columnReferences = prompt.match(/@[a-zA-Z]+/g); // @Major, @Name, etc.
-
-// if (targetDialogColumn) {
-//   console.log('targetDialogColumn', prompt, rows, targetDialogColumn);
-//   // Update all cells in the column
-//   rows.forEach((_, rowIndex) => {
-//     onUpdateCell(rowIndex, targetDialogColumn, inputValue);
-//   });
-//   setInputValue('');
-//   setIsDialogColumnTypeOpen(false);
-// }

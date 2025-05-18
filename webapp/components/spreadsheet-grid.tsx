@@ -3,13 +3,13 @@
 import { useState } from 'react';
 import { Cell } from '@/components/cell';
 import { Button } from '@/components/ui/button';
-import { Settings } from 'lucide-react';
+import { ArrowRightLeft } from 'lucide-react';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import ChangeColumnTypeModal from './change-colunm-type-modal';
 
 interface SpreadsheetGridProps {
@@ -37,9 +37,6 @@ export default function SpreadsheetGrid({
     row: number;
     col: string;
   } | null>(null);
-  const [inputDialogChangeTypeValue, setInputDialogChangeTypeValue] =
-    useState('');
-  const [targetColumn, setTargetColumn] = useState<string | null>(null);
 
   const handleCellClick = (rowIndex: number, columnName: string) => {
     setSelectedCell({ row: rowIndex, col: columnName });
@@ -82,34 +79,28 @@ export default function SpreadsheetGrid({
                     <span className="font-medium text-sm text-gray-700">
                       {column}
                     </span>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        {/* behave as its child */}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 w-6 p-0"
-                        >
-                          <Settings className="h-3.5 w-3.5" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <ChangeColumnTypeModal
-                          targetColumn={column}
-                          onSubmit={onToggleColumnType}
-                        >
-                          <DropdownMenuItem
-                            onSelect={(e) => {
-                              e.preventDefault();
-                            }}
-                          >
-                            {columns[column] === 'regular'
-                              ? 'Convert to AI-trigger'
-                              : 'Convert to regular'}
-                          </DropdownMenuItem>
-                        </ChangeColumnTypeModal>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+
+                    <ChangeColumnTypeModal
+                      targetColumn={column}
+                      onSubmit={onToggleColumnType}
+                    >
+                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <ArrowRightLeft className="h-3.5 w-3.5" />
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>
+                                {columns[column] === 'regular'
+                                  ? 'Convert to AI-trigger'
+                                  : 'Convert to regular'}
+                              </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </Button>
+                    </ChangeColumnTypeModal>
                   </div>
                   <div className="absolute bottom-0 left-0 w-full h-0.5">
                     {columns[column] === 'ai-trigger' && (

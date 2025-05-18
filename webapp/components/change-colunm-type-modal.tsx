@@ -21,7 +21,7 @@ export default function ChangeColumnTypeModal({
 }) {
   const [open, setOpen] = useState(false);
   const [prompt, setPrompt] = useState(
-    'Is student with major in @Major an engineer?'
+    'Classify a student with major in @Major as an engineer or non-engineer?'
   );
 
   return (

@@ -30,7 +30,7 @@ export default function CreateSheetModal({
 
   const handleCreateFromTemplate = () => {
     setOpen(false);
-    router.push('/spreadsheet/template');
+    router.push('/spreadsheet/new?template=students-template');
   };
 
   return (

@@ -1,28 +1,27 @@
 'use client';
 
 import type React from 'react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import SpreadsheetGrid from '@/components/spreadsheet-grid';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Save } from 'lucide-react';
 import Link from 'next/link';
 
 export default function SpreadsheetPage() {
-  const [columnNames, setColumnNames] = useState<string[]>([]);
-  const [columnTypes, setColumnTypes] = useState<
+  const [columns, setColumns] = useState<
     Record<string, 'regular' | 'ai-trigger'>
-  >({});
+  >({}); // map of column name to type
   const [rows, setRows] = useState<Record<string, string>[]>([]); // map of column name to value
 
   // UI state
+  const [targetColumnTypeDialog, setTargetColumnTypeDialog] = useState<
+    string | null
+  >(null);
   const [isDialogColumnTypeOpen, setIsDialogColumnTypeOpen] = useState(false);
-  const [targetDialogColumn, setTargetDialogColumn] = useState<string | null>(
-    null
-  );
-
-  // Local Handlers
   const [spreadsheetName, setSpreadsheetName] =
     useState<string>('New Spreadsheet');
+
+  // Local Handlers
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSpreadsheetName(e.target.value);
   };
@@ -32,23 +31,23 @@ export default function SpreadsheetPage() {
     }
   };
 
-  // Prop Handlers
+  // Remote Handlers
   const addColumn = () => {
-    const newColumnName = `Column ${columnNames.length + 1}`;
-    setColumnNames([...columnNames, newColumnName]);
-    setColumnTypes({ ...columnTypes, [newColumnName]: 'regular' });
+    const newColName = `Column ${Object.keys(columns).length + 1}`;
+    setColumns({ ...columns, [newColName]: 'regular' });
 
     // Add empty value for this column to all existing rows
     const updatedRows = rows.map((row) => ({
       ...row,
-      [newColumnName]: '',
+      [newColName]: '',
     }));
     setRows(updatedRows);
   };
 
   const addRow = () => {
     const newRow: Record<string, string> = {};
-    for (const col of columnNames) {
+    const colNames = Object.keys(columns);
+    for (const col of colNames) {
       newRow[col] = '';
     }
     setRows([...rows, newRow]);
@@ -64,11 +63,17 @@ export default function SpreadsheetPage() {
   };
 
   const toggleColumnType = (columnName: string, prompt: string) => {
-    // if switching to ai-trigger, get prompt
-    if (columnTypes[columnName] === 'regular') {
+    console.log('toggleColumnType: START', columnName, prompt);
+    // if switching to regular, just switch
+    if (columns[columnName] === 'ai-trigger') {
+      setColumns({ ...columns, [columnName]: 'regular' });
+      return;
+    }
+
+    // if switching to ai-trigger: set AI function, run it, and update the column type
+    if (columns[columnName] === 'regular') {
       // display a modal with a brief explanation of the column type and a text input
-      const aiFunctionDescription = `This column is used to trigger an AI function. For now, the AI is configured to respond TRUE/
-      FALSE and give a reasoning. Please provide a prompt for the AI to respond to. You can refer to other columns with 
+      const aiFunctionDescription = `This column is used to trigger an AI function. For now, the AI is configured to respond TRUE/FALSE and give a reasoning. Please provide a prompt for the AI to respond to. You can refer to other columns with 
       "@COLUMN_NAME".`;
 
       try {
@@ -78,19 +83,10 @@ export default function SpreadsheetPage() {
       }
 
       // Open the dialog and set target column
-      setTargetDialogColumn(columnName);
+      setTargetColumnTypeDialog(columnName);
       setIsDialogColumnTypeOpen(true);
       return; // Don't toggle type yet, wait for dialog input
     }
-
-    // if switching to regular, just switch
-    // switch column type
-    setColumnTypes({
-      ...columnTypes,
-      [columnName]:
-        // @ts-ignore
-        columnTypes[columnName] === 'regular' ? 'ai-trigger' : 'regular',
-    });
   };
 
   return (
@@ -123,17 +119,12 @@ export default function SpreadsheetPage() {
       <main className="flex-1 p-6 bg-gray-50">
         <div className="max-w-7xl mx-auto">
           <SpreadsheetGrid
-            columnNames={columnNames}
+            columns={columns}
             rows={rows}
-            columnTypes={columnTypes}
             onUpdateCell={updateCell}
             onToggleColumnType={toggleColumnType}
             onAddRow={addRow}
             onAddColumn={addColumn}
-            isDialogColumnTypeOpen={isDialogColumnTypeOpen}
-            setIsDialogColumnTypeOpen={setIsDialogColumnTypeOpen}
-            targetDialogColumn={targetDialogColumn}
-            setTargetDialogColumn={setTargetDialogColumn}
           />
         </div>
       </main>

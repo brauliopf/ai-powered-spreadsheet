@@ -2,10 +2,13 @@ export const templates = {
   'students-template': {
     name: 'Students Template',
     columns: {
-      'First name': 'regular',
-      'Last name': 'regular',
-      Major: 'regular',
-      isEngineer: 'ai-trigger',
+      'First name': { type: 'regular' },
+      'Last name': { type: 'regular' },
+      Major: { type: 'regular' },
+      isEngineer: {
+        type: 'ai-trigger',
+        prompt: 'Is the student from a major in @Major an engineer?',
+      },
     },
     rows: [
       {

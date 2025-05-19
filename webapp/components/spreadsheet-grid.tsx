@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Cell } from '@/components/cell';
 import { Button } from '@/components/ui/button';
 import { ArrowRightLeft } from 'lucide-react';
@@ -12,8 +12,13 @@ import {
 } from '@/components/ui/tooltip';
 import ChangeColumnTypeModal from './change-colunm-type-modal';
 
+type ColumnConfig = {
+  type: 'regular' | 'ai-trigger';
+  prompt?: string;
+};
+
 interface SpreadsheetGridProps {
-  columns: Record<string, 'regular' | 'ai-trigger'>;
+  columns: Record<string, ColumnConfig>;
   rows: Record<string, string>[];
   onUpdateCell: (rowIndex: number, columnName: string, value: string) => void;
   onToggleColumnType: (columnName: string, prompt: string) => void;
@@ -64,6 +69,10 @@ export default function SpreadsheetGrid({
     onUpdateCell(rowIndex, columnName, value);
   };
 
+  useEffect(() => {
+    console.log('DEBUG: rows', rows);
+  }, [rows]);
+
   return (
     <div className="bg-white border rounded-lg shadow-sm overflow-hidden relative">
       <div className="overflow-x-auto">
@@ -84,7 +93,7 @@ export default function SpreadsheetGrid({
                       targetColumn={column}
                       onSubmit={onToggleColumnType}
                     >
-                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                      <div className="h-6 w-6 p-0">
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger>
@@ -99,7 +108,7 @@ export default function SpreadsheetGrid({
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
-                      </Button>
+                      </div>
                     </ChangeColumnTypeModal>
                   </div>
                   <div className="absolute bottom-0 left-0 w-full h-0.5">

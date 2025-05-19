@@ -2,6 +2,7 @@ from fastapi import FastAPI, Body
 from pydantic import BaseModel
 from typing import Optional
 import os
+import json
 from groq import Groq
 from dotenv import load_dotenv
 load_dotenv()
@@ -34,7 +35,7 @@ async def check_engineer(data: Optional[dict] = Body(default=None)):
     system_message = """
     You are an expert at evaluating educational backgrounds. 
     Determine if the given major typically leads to an engineering career.
-    Respond with a JSON object containing 'isEngineer' (boolean) and 'reasoning' (string).
+    Respond with a JSON object containing 'isEngineer' (boolean) and 'reasoning' (string). Your response musts only contain the object with 2 (key, values) pairs.
     """
     
     # Create chat completion with Groq
@@ -49,13 +50,12 @@ async def check_engineer(data: Optional[dict] = Body(default=None)):
     
     # Extract the content from the response
     llm_response_content = response.choices[0].message.content
-    
-    # For simplicity, we'll parse the response ourselves
-    # In a production app, you'd want more robust parsing and error handling
-    import json
+
+    # TODO: improve parsing and error handling
     try:
         # Attempt to parse JSON from the LLM response
         parsed_response = json.loads(llm_response_content)
+        print('parsed_response', parsed_response)
         is_engineer = parsed_response.get("isEngineer", False)
         reasoning = parsed_response.get("reasoning", "No reasoning provided")
     except json.JSONDecodeError:
@@ -66,4 +66,4 @@ async def check_engineer(data: Optional[dict] = Body(default=None)):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="127.0.0.1", port=8000)

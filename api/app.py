@@ -59,11 +59,8 @@ async def check_engineer(data: Optional[dict] = Body(default=None)):
         is_engineer = parsed_response.get("isEngineer", False)
         reasoning = parsed_response.get("reasoning", "No reasoning provided")
     except json.JSONDecodeError:
-        # If the LLM doesn't return valid JSON, fall back to a simple heuristic
-        engineering_majors = ["computer science", "software engineering", "electrical engineering", 
-                            "mechanical engineering", "civil engineering", "chemical engineering"]
-        is_engineer = any(eng_major in major.lower() for eng_major in engineering_majors)
-        reasoning = f"Based on major '{major}'. {'Engineering-related major detected.' if is_engineer else 'Not a typical engineering major.'}"
+        is_engineer = False
+        reasoning = "ERROR - No reasoning provided"
     
     return EngineerResponse(isEngineer=is_engineer, reasoning=reasoning)
 

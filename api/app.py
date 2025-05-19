@@ -22,13 +22,13 @@ class EngineerResponse(BaseModel):
 
 @app.post("/check-engineer")
 async def check_engineer(data: Optional[dict] = Body(default=None)):
-    if not data or "major" not in data:
+    if not data or "prompt" not in data:
         return EngineerResponse(
             isEngineer=False, 
-            reasoning="No major provided in request data"
+            reasoning="No prompt provided in request data"
         )
     
-    major = data["major"]
+    prompt = data["prompt"]
     
     # System message for the LLM
     system_message = """
@@ -42,7 +42,7 @@ async def check_engineer(data: Optional[dict] = Body(default=None)):
         model="llama3-8b-8192",  # or another available Groq model
         messages=[
             {"role": "system", "content": system_message},
-            {"role": "user", "content": f"Evaluate if someone with a major in '{major}' is likely an engineer."}
+            {"role": "user", "content": prompt}
         ],
         temperature=0.2,
     )

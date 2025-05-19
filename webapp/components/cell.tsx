@@ -21,6 +21,7 @@ interface CellProps {
   onDoubleClick: () => void;
   onBlur: () => void;
   onChange: (value: string) => void;
+  onTriggerAIFunction: () => void;
 }
 
 export function Cell({
@@ -32,6 +33,7 @@ export function Cell({
   onDoubleClick,
   onBlur,
   onChange,
+  onTriggerAIFunction,
 }: CellProps) {
   const [inputValue, setInputValue] = useState(value);
   const [isLoading, setIsLoading] = useState(false);
@@ -67,44 +69,6 @@ export function Cell({
     }
   };
 
-  const triggerAIFunction = async () => {
-    setIsLoading(true);
-
-    try {
-      // Simulate AI processing
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      // For demo purposes, we'll just check if the first name or last name contains "eng"
-      // In a real app, this would be an API call to an AI service
-      const rowData = value.split(',');
-      const firstName = rowData[0]?.toLowerCase() || '';
-      const lastName = rowData[1]?.toLowerCase() || '';
-      const major = rowData[2]?.toLowerCase() || '';
-
-      let result = 'No';
-      let reason =
-        'The person is not an engineer based on the provided information.';
-
-      if (
-        major.includes('eng') ||
-        major.includes('computer') ||
-        major.includes('software') ||
-        major.includes('electrical') ||
-        major.includes('mechanical')
-      ) {
-        result = 'Yes';
-        reason = `Based on the major "${major}", this person is likely an engineer.`;
-      }
-
-      setReasoning(reason);
-      onChange(result);
-    } catch (error) {
-      console.error('Error triggering AI function:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const cellContent = () => {
     if (isEditing) {
       return (
@@ -116,7 +80,6 @@ export function Cell({
           onBlur={handleInputBlur}
           onKeyDown={handleKeyDown}
           className="w-full h-full p-2 outline-none border-none"
-          autoFocus
         />
       );
     }
@@ -138,7 +101,7 @@ export function Cell({
                   className="h-6 w-6 p-0 opacity-50 hover:opacity-100"
                   onClick={(e) => {
                     e.stopPropagation();
-                    triggerAIFunction();
+                    onTriggerAIFunction();
                   }}
                   disabled={isLoading}
                 >
@@ -160,7 +123,7 @@ export function Cell({
                   className="w-full text-xs"
                   onClick={(e) => {
                     e.stopPropagation();
-                    triggerAIFunction();
+                    onTriggerAIFunction();
                   }}
                   disabled={isLoading}
                 >
@@ -185,6 +148,8 @@ export function Cell({
       className={`min-h-[40px] min-w-[100px] ${isSelected ? 'outline outline-2 outline-blue-500 z-10 relative' : ''}`}
       onClick={onClick}
       onDoubleClick={onDoubleClick}
+      onKeyDown={() => {}}
+      aria-live="polite"
     >
       {cellContent()}
     </div>

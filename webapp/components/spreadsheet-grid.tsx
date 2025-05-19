@@ -18,21 +18,25 @@ type ColumnConfig = {
 };
 
 interface SpreadsheetGridProps {
-  columns: Record<string, ColumnConfig>;
-  rows: Record<string, string>[];
+  columns: Record<string, ColumnConfig>; // a single object with as many {string, ColumnConfig} pairs (columns).
+  rows: Record<string, string>[]; // an array of objects with as many string-valued (key, value) pairs (columns).
+  onGetRowId: (row: Record<string, string>, idx: number) => string;
   onUpdateCell: (rowIndex: number, columnName: string, value: string) => void;
   onToggleColumnType: (columnName: string, prompt: string) => void;
   onAddRow: () => void;
   onAddColumn: () => void;
+  onTriggerAIFunction: (rowIndex: number, columnName: string) => void;
 }
 
 export default function SpreadsheetGrid({
   columns,
   rows,
+  onGetRowId,
   onUpdateCell,
   onToggleColumnType,
   onAddRow,
   onAddColumn,
+  onTriggerAIFunction,
 }: SpreadsheetGridProps) {
   const [selectedCell, setSelectedCell] = useState<{
     row: number;
@@ -66,12 +70,13 @@ export default function SpreadsheetGrid({
     columnName: string,
     value: string
   ) => {
+    console.log('DEBUG: handleCellChange', rowIndex, columnName, value);
     onUpdateCell(rowIndex, columnName, value);
   };
 
-  useEffect(() => {
-    console.log('DEBUG: rows', rows);
-  }, [rows]);
+  const handleTriggerAIFunction = (rowIndex: number, columnName: string) => {
+    onTriggerAIFunction(rowIndex, columnName);
+  };
 
   return (
     <div className="bg-white border rounded-lg shadow-sm overflow-hidden relative">
@@ -101,7 +106,7 @@ export default function SpreadsheetGrid({
                             </TooltipTrigger>
                             <TooltipContent>
                               <p>
-                                {columns[column] === 'regular'
+                                {columns[column].type === 'regular'
                                   ? 'Convert to AI-trigger'
                                   : 'Convert to regular'}
                               </p>
@@ -112,7 +117,7 @@ export default function SpreadsheetGrid({
                     </ChangeColumnTypeModal>
                   </div>
                   <div className="absolute bottom-0 left-0 w-full h-0.5">
-                    {columns[column] === 'ai-trigger' && (
+                    {columns[column].type === 'ai-trigger' && (
                       <div className="bg-purple-500 h-full w-full" />
                     )}
                   </div>
@@ -122,12 +127,12 @@ export default function SpreadsheetGrid({
           </thead>
           <tbody>
             {rows.map((row, rowIndex) => (
-              <tr key={`row-${rowIndex}`}>
+              <tr key={onGetRowId(row, rowIndex)}>
                 {Object.keys(columns).map((column: string) => (
                   <td key={`cell-${rowIndex}-${column}`} className="border p-0">
                     <Cell
                       value={row[column] || ''}
-                      type={columns[column]}
+                      type={columns[column].type}
                       isSelected={
                         selectedCell?.row === rowIndex &&
                         selectedCell?.col === column
@@ -143,6 +148,9 @@ export default function SpreadsheetGrid({
                       onBlur={handleCellBlur}
                       onChange={(value) =>
                         handleCellChange(rowIndex, column, value)
+                      }
+                      onTriggerAIFunction={() =>
+                        handleTriggerAIFunction(rowIndex, column)
                       }
                     />
                   </td>

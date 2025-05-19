@@ -15,14 +15,12 @@ type ColumnConfig = {
 };
 
 export default function SpreadsheetPage() {
+  // State
   const [columns, setColumns] = useState<Record<string, ColumnConfig>>({});
   const [rows, setRows] = useState<Record<string, string>[]>([]);
   const [spreadsheetName, setSpreadsheetName] =
     useState<string>('New Spreadsheet');
-  const processedRef = useRef<Record<string, boolean>>({});
-  const [targetColumnTypeDialog, setTargetColumnTypeDialog] =
-    useState<string>('');
-  const [isDialogColumnTypeOpen, setIsDialogColumnTypeOpen] = useState(false);
+  const processedRows = useRef<Set<string>>(new Set()); // use concatenated row values as keys for the set
 
   // Navigation hooks
   const searchParams = useSearchParams();
@@ -52,35 +50,49 @@ export default function SpreadsheetPage() {
     loadTemplate();
   }, [pathname, templateParam]);
 
+  // useCallback to avoid re-rendering the component when the columns change
+  const getRowId = useCallback(
+    (row: Record<string, string>, idx = 0) => {
+      const regularColumns = Object.keys(columns).filter(
+        (column) => columns[column].type === 'regular' && row[column]
+      );
+      const rowKey = regularColumns.map((column) => row[column]).join('-');
+      return `${idx}-${rowKey}`;
+    },
+    [columns]
+  );
+
+  // Run AI Functions when columns or rows change. Keep track of processed rows with useRef
   useEffect(() => {
-    const columnKey = JSON.stringify(columns);
-    if (processedRef.current[columnKey]) return;
+    // find ai-trigger columns. return if none.
+    const aiTriggerColumns = Object.keys(columns).filter(
+      (column) => columns[column].type === 'ai-trigger'
+    );
+    if (aiTriggerColumns.length === 0 || rows.length === 0) return;
 
     async function runAiFunctions() {
-      // find ai-trigger columns
-      const aiTriggerColumns = Object.keys(columns).filter(
-        (column) => columns[column].type === 'ai-trigger'
-      );
-
-      if (aiTriggerColumns.length === 0 || rows.length === 0) return;
-
-      // Create a deep copy of rows to avoid mutation
+      // Create a deep copy of rows to preserve the original data.
       const updatedRows = rows.map((row) => ({ ...row }));
       let hasUpdates = false;
 
-      // get prompt for each ai-trigger column + execute prompt for each row
+      // get prompt template for each column + execute prompt for each row
       for (const column of aiTriggerColumns) {
+        // get prompt template
         const promptTemplate = columns[column].prompt;
         if (!promptTemplate) {
           console.error(`No prompt found for column: ${column}`);
           continue;
         }
 
-        // Process each row
+        // build prompt with row values (execute template)
         for (let rowIdx = 0; rowIdx < rows.length; rowIdx++) {
-          // Build prompt for this row by replacing @ColumnName placeholders
+          // skip if row has already been processed
+          const rowKey = getRowId(rows[rowIdx], rowIdx);
+          if (processedRows.current.has(rowKey)) continue;
+
+          // build prompt for this row by replacing @ColumnName placeholders
           let prompt = promptTemplate;
-          const row = rows[rowIdx];
+          const row = updatedRows[rowIdx];
 
           // Find column references in the prompt and replace them
           const referredColumns = (
@@ -101,19 +113,11 @@ export default function SpreadsheetPage() {
             body: JSON.stringify({ prompt }),
           });
 
-          // Assign output values to our updatedRows array
+          // Assign output values to updatedRows array
           if (response.ok) {
             const data = await response.text();
             try {
               const jsonData = JSON.parse(data);
-              console.log(
-                'DEBUG: jsonData received for row',
-                rowIdx,
-                'column',
-                column,
-                ':',
-                jsonData
-              );
 
               // Extract the value and ensure it's a string
               const aiValue =
@@ -121,13 +125,13 @@ export default function SpreadsheetPage() {
                   ? String(jsonData.isEngineer)
                   : JSON.stringify(jsonData).substring(0, 50);
 
-              console.log('DEBUG: setting cell value to', aiValue);
-
+              // Update the row with the AI value
               updatedRows[rowIdx] = {
                 ...updatedRows[rowIdx],
                 [column]: aiValue,
               };
               hasUpdates = true;
+              processedRows.current.add(getRowId(rows[rowIdx], rowIdx));
             } catch (e) {
               console.error('Failed to parse response as JSON', e);
             }
@@ -137,14 +141,12 @@ export default function SpreadsheetPage() {
 
       // Only update state if we have changes
       if (hasUpdates) {
-        console.log('DEBUG: updating rows with', updatedRows);
         setRows(updatedRows);
       }
     }
 
     runAiFunctions();
-    processedRef.current[columnKey] = true;
-  }, [columns, rows]);
+  }, [columns, rows, getRowId]);
 
   // Local Handlers
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -179,16 +181,14 @@ export default function SpreadsheetPage() {
   };
 
   const updateCell = (rowIndex: number, columnName: string, value: string) => {
-    console.log('DEBUG: updating cell', rowIndex, columnName, value);
     const newRows = [...rows];
     newRows[rowIndex] = {
       ...newRows[rowIndex],
       [columnName]: value,
     };
-    console.log('DEBUG: updated cell', newRows);
     setRows(newRows);
 
-    // Check if this column is referenced by any AI-trigger columns
+    // Check if this column affects any AI-trigger columns
     const aiTriggerColumns = Object.keys(columns).filter((col) => {
       // Check if this column is an AI-trigger column
       if (columns[col].type !== 'ai-trigger') return false;
@@ -198,15 +198,16 @@ export default function SpreadsheetPage() {
       return prompt.includes(`@${columnName}`);
     });
 
-    // If this column affects any AI-trigger columns, reset processed state to trigger reevaluation
+    // If this column affects any AI-trigger columns,
+    // reset processed state for the respective row to trigger reevaluation
     if (aiTriggerColumns.length > 0) {
       console.log(
-        `Cell update in ${columnName} affects AI columns:`,
+        `Cell update in row (${rowIndex}, ${columnName}) affects AI columns:`,
         aiTriggerColumns
       );
 
       // Clear the processed state to force AI reassessment
-      processedRef.current = {};
+      processedRows.current.delete(getRowId(rows[rowIndex], rowIndex));
 
       // Update columns slightly to trigger the useEffect
       setColumns({ ...columns });
@@ -230,15 +231,60 @@ export default function SpreadsheetPage() {
         });
 
         // Reset the processed state for this column configuration
-        processedRef.current = {};
+        processedRows.current = new Set();
       } catch (error) {
         console.error(error);
       }
 
       // Open the dialog and set target column
-      setTargetColumnTypeDialog(columnName);
-      setIsDialogColumnTypeOpen(true);
+      // setTargetColumnTypeDialog(columnName);
+      // setIsDialogColumnTypeOpen(true);
       return; // Don't toggle type yet, wait for dialog input
+    }
+  };
+
+  const triggerAIFunction = async (rowIndex: number, columnName: string) => {
+    // get prompt template for columnName
+    const promptTemplate = columns[columnName].prompt;
+    if (!promptTemplate) {
+      console.error(`No prompt found for column: ${columnName}`);
+      return;
+    }
+
+    // build prompt with row values (execute template)
+    let prompt = promptTemplate;
+    const row = rows[rowIndex];
+
+    // Find column references in the prompt and replace them
+    const referredColumns = (
+      promptTemplate.match(/@([a-zA-Z0-9_]+)/g) || []
+    ).map((name) => name.substring(1));
+
+    for (const columnName of referredColumns) {
+      const value = row[columnName] || '';
+      prompt = prompt.replace(`@${columnName}`, value);
+    }
+
+    // get LLM completion
+    const response = await fetch('/api/ai-proxy', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ prompt }),
+    });
+
+    // update cell value
+    if (response.ok) {
+      const data = await response.text();
+      const jsonData = JSON.parse(data);
+      const aiValue =
+        jsonData.isEngineer !== undefined
+          ? String(jsonData.isEngineer)
+          : JSON.stringify(jsonData).substring(0, 50);
+      updateCell(rowIndex, columnName, aiValue);
+    } else {
+      console.error('Failed to get AI response', response.statusText);
     }
   };
 
@@ -274,10 +320,12 @@ export default function SpreadsheetPage() {
           <SpreadsheetGrid
             columns={columns}
             rows={rows}
+            onGetRowId={getRowId}
             onUpdateCell={updateCell}
             onToggleColumnType={toggleColumnType}
             onAddRow={addRow}
             onAddColumn={addColumn}
+            onTriggerAIFunction={triggerAIFunction}
           />
         </div>
       </main>

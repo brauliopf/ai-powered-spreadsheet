@@ -33,9 +33,9 @@ async def check_engineer(data: Optional[dict] = Body(default=None)):
     
     # System message for the LLM
     system_message = """
-    You are an expert at evaluating educational backgrounds. 
-    Determine if the given major typically leads to an engineering career.
-    Respond with a JSON object containing 'isEngineer' (boolean) and 'reasoning' (string). Your response musts only contain the object with 2 (key, values) pairs.
+    You are an expert at evaluating educational backgrounds.
+    You will be given a simple context with background information, such as a major or a job title, you must determine if the given context typically leads to an engineering career.
+    You must respond with a JSON object containing 'isEngineer' (boolean) and 'reasoning' (string). Your response musts only contain the object with 2 (key, values) pairs.
     """
     
     # Create chat completion with Groq

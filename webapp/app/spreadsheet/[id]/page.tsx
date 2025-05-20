@@ -327,6 +327,16 @@ export default function SpreadsheetPage() {
     }
   };
 
+  const editColumnPrompt = (columnName: string, newPrompt: string) => {
+    setColumns({
+      ...columns,
+      [columnName]: { type: 'ai-trigger', prompt: newPrompt },
+    });
+    // clean processedRows
+    processedRows.current = new Set();
+    // close modal is handled in the ChangeColumnTypeModal component now
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <header className="border-b p-4 bg-white">
@@ -368,6 +378,7 @@ export default function SpreadsheetPage() {
             onRenameColumn={renameColumn}
             onDeleteColumn={deleteColumn}
             onSwitchColumnType={switchColumnType}
+            onEditColumnPrompt={editColumnPrompt}
           />
         </div>
       </main>

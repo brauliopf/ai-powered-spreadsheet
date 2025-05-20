@@ -14,14 +14,17 @@ export default function ChangeColumnTypeModal({
   children,
   targetColumn,
   onSubmit,
+  initialPrompt,
 }: {
   children: React.ReactNode;
   targetColumn: string;
   onSubmit: (targetColumn: string, prompt: string) => void;
+  initialPrompt?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [prompt, setPrompt] = useState(
-    'Classify a student with major in @Major as an engineer or non-engineer?'
+    initialPrompt ||
+      'Classify a student with major in @Major as an engineer or non-engineer?'
   );
 
   return (
@@ -49,7 +52,12 @@ export default function ChangeColumnTypeModal({
               disabled={false}
               className="min-h-[80px]"
             />
-            <Button onClick={() => onSubmit(targetColumn, prompt)}>
+            <Button
+              onClick={() => {
+                onSubmit(targetColumn, prompt);
+                setOpen(false);
+              }}
+            >
               Apply to All
             </Button>
           </div>

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Cell } from '@/components/cell';
 import { Button } from '@/components/ui/button';
-import { ArrowRightLeft, X } from 'lucide-react';
+import { ArrowRightLeft, X, Edit } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -31,6 +31,7 @@ interface SpreadsheetGridProps {
   onRenameColumn: (oldName: string, newName: string) => void;
   onDeleteColumn: (columnName: string) => void;
   onSwitchColumnType: (columnName: string) => void;
+  onEditColumnPrompt: (columnName: string, newPrompt: string) => void;
 }
 
 export default function SpreadsheetGrid({
@@ -45,6 +46,7 @@ export default function SpreadsheetGrid({
   onRenameColumn,
   onDeleteColumn,
   onSwitchColumnType,
+  onEditColumnPrompt,
 }: SpreadsheetGridProps) {
   // Remove local state and handlers for cell interactions
   const {
@@ -74,6 +76,7 @@ export default function SpreadsheetGrid({
       <div className="overflow-x-auto">
         <table className="w-full border-collapse">
           <thead>
+            {/* TABLE HEADER */}
             <tr className="bg-gray-50">
               {Object.keys(columns).map((column: string) => (
                 <th
@@ -98,6 +101,7 @@ export default function SpreadsheetGrid({
                       )}
                     </span>
                     <div className="flex items-center gap-2">
+                      {/* DELETE COLUMN */}
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger>
@@ -111,7 +115,9 @@ export default function SpreadsheetGrid({
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
+
                       {columns[column].type === 'regular' ? (
+                        // REGULAR COLUMN - CONVERT TO AI-TRIGGER
                         <ChangeColumnTypeModal
                           targetColumn={column}
                           onSubmit={onToggleColumnType}
@@ -134,19 +140,49 @@ export default function SpreadsheetGrid({
                           </div>
                         </ChangeColumnTypeModal>
                       ) : (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger>
-                              <ArrowRightLeft
-                                className="h-3.5 w-3.5"
-                                onClick={() => onSwitchColumnType(column)}
-                              />
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Convert to regular</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                        // AI-TRIGGER COLUMN - EDIT PROMPT OR CONVERT TO REGULAR
+                        <>
+                          {/* EDIT AI-TRIGGER COLUMN PROMPT */}
+                          <ChangeColumnTypeModal
+                            targetColumn={column}
+                            onSubmit={(targetColumn, newPrompt) => {
+                              console.log(
+                                '>>> newPrompt:',
+                                targetColumn,
+                                newPrompt
+                              );
+                              onEditColumnPrompt(targetColumn, newPrompt);
+                            }}
+                            initialPrompt={columns[column].prompt}
+                          >
+                            <div className="h-6 w-6 p-0">
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger>
+                                    <Edit className="h-3.5 w-3.5" />
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p className="text-xs">Edit AI prompt</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            </div>
+                          </ChangeColumnTypeModal>
+                          {/* CONVERT TO REGULAR */}
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <ArrowRightLeft
+                                  className="h-3.5 w-3.5"
+                                  onClick={() => onSwitchColumnType(column)}
+                                />
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Convert to regular</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </>
                       )}
                     </div>
                   </div>
@@ -159,6 +195,7 @@ export default function SpreadsheetGrid({
               ))}
             </tr>
           </thead>
+          {/* TABLE BODY */}
           <tbody>
             {rows.map((row, rowIndex) => (
               <tr key={onGetRowId(row, rowIndex)}>

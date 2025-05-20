@@ -1,6 +1,6 @@
 export const templates = {
   'students-template': {
-    name: 'Students Template',
+    name: 'Students',
     columns: {
       'First name': { type: 'regular' },
       'Last name': { type: 'regular' },

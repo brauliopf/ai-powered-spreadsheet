@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Cell } from '@/components/cell';
 import { Button } from '@/components/ui/button';
-import { ArrowRightLeft } from 'lucide-react';
+import { ArrowRightLeft, X } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -11,6 +11,8 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import ChangeColumnTypeModal from './change-colunm-type-modal';
+import { useCellHandlers } from '@/hooks/use-cell-handlers';
+import { useColumnHeaderHandlers } from '@/hooks/use-column-header-handlers';
 
 type ColumnConfig = {
   type: 'regular' | 'ai-trigger';
@@ -26,6 +28,9 @@ interface SpreadsheetGridProps {
   onAddRow: () => void;
   onAddColumn: () => void;
   onTriggerAIFunction: (rowIndex: number, columnName: string) => void;
+  onRenameColumn: (oldName: string, newName: string) => void;
+  onDeleteColumn: (columnName: string) => void;
+  onSwitchColumnType: (columnName: string) => void;
 }
 
 export default function SpreadsheetGrid({
@@ -37,46 +42,32 @@ export default function SpreadsheetGrid({
   onAddRow,
   onAddColumn,
   onTriggerAIFunction,
+  onRenameColumn,
+  onDeleteColumn,
+  onSwitchColumnType,
 }: SpreadsheetGridProps) {
-  const [selectedCell, setSelectedCell] = useState<{
-    row: number;
-    col: string;
-  } | null>(null);
-  const [editingCell, setEditingCell] = useState<{
-    row: number;
-    col: string;
-  } | null>(null);
+  // Remove local state and handlers for cell interactions
+  const {
+    selectedCell,
+    editingCell,
+    handleCellClick,
+    handleCellDoubleClick,
+    handleCellBlur,
+    handleCellChange,
+    handleTriggerAIFunction,
+  } = useCellHandlers({
+    onUpdateCell,
+    onTriggerAIFunction,
+  });
 
-  const handleCellClick = (rowIndex: number, columnName: string) => {
-    setSelectedCell({ row: rowIndex, col: columnName });
-
-    // If already selected and clicked again, enter edit mode
-    if (selectedCell?.row === rowIndex && selectedCell?.col === columnName) {
-      setEditingCell({ row: rowIndex, col: columnName });
-    }
-  };
-
-  const handleCellDoubleClick = (rowIndex: number, columnName: string) => {
-    setSelectedCell({ row: rowIndex, col: columnName });
-    setEditingCell({ row: rowIndex, col: columnName });
-  };
-
-  const handleCellBlur = () => {
-    setEditingCell(null);
-  };
-
-  const handleCellChange = (
-    rowIndex: number,
-    columnName: string,
-    value: string
-  ) => {
-    console.log('DEBUG: handleCellChange', rowIndex, columnName, value);
-    onUpdateCell(rowIndex, columnName, value);
-  };
-
-  const handleTriggerAIFunction = (rowIndex: number, columnName: string) => {
-    onTriggerAIFunction(rowIndex, columnName);
-  };
+  const {
+    editingColumn,
+    editingValue,
+    handleColumnDoubleClick,
+    handleColumnInputChange,
+    handleColumnInputBlur,
+    handleColumnInputKeyDown,
+  } = useColumnHeaderHandlers(onRenameColumn);
 
   return (
     <div className="bg-white border rounded-lg shadow-sm overflow-hidden relative">
@@ -87,34 +78,77 @@ export default function SpreadsheetGrid({
               {Object.keys(columns).map((column: string) => (
                 <th
                   key={`col-${column}`}
-                  className="border-b p-2 text-left relative"
+                  className="border-b-4 border-l-2 border-r-2 border-t-1 p-2 text-left relative"
                 >
-                  <div className="flex items-center justify-between">
+                  <div
+                    className="flex items-center justify-between"
+                    onDoubleClick={() => handleColumnDoubleClick(column)}
+                  >
                     <span className="font-medium text-sm text-gray-700">
-                      {column}
+                      {editingColumn === column ? (
+                        <input
+                          className="font-medium text-sm text-gray-700 bg-white border rounded px-1 py-0.5 w-24 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          value={editingValue}
+                          onChange={handleColumnInputChange}
+                          onBlur={handleColumnInputBlur}
+                          onKeyDown={handleColumnInputKeyDown}
+                        />
+                      ) : (
+                        column
+                      )}
                     </span>
-
-                    <ChangeColumnTypeModal
-                      targetColumn={column}
-                      onSubmit={onToggleColumnType}
-                    >
-                      <div className="h-6 w-6 p-0">
+                    <div className="flex items-center gap-2">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <X
+                              className="h-3.5 w-3.5 cursor-pointer hover:text-red-500"
+                              onClick={() => onDeleteColumn(column)}
+                            />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="text-xs">Delete column</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      {columns[column].type === 'regular' ? (
+                        <ChangeColumnTypeModal
+                          targetColumn={column}
+                          onSubmit={onToggleColumnType}
+                        >
+                          <div className="h-6 w-6 p-0">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <ArrowRightLeft className="h-3.5 w-3.5" />
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p className="text-xs">
+                                    {columns[column].type === 'regular'
+                                      ? 'Convert to AI-trigger'
+                                      : 'Convert to regular'}
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                        </ChangeColumnTypeModal>
+                      ) : (
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger>
-                              <ArrowRightLeft className="h-3.5 w-3.5" />
+                              <ArrowRightLeft
+                                className="h-3.5 w-3.5"
+                                onClick={() => onSwitchColumnType(column)}
+                              />
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>
-                                {columns[column].type === 'regular'
-                                  ? 'Convert to AI-trigger'
-                                  : 'Convert to regular'}
-                              </p>
+                              <p>Convert to regular</p>
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>
-                      </div>
-                    </ChangeColumnTypeModal>
+                      )}
+                    </div>
                   </div>
                   <div className="absolute bottom-0 left-0 w-full h-0.5">
                     {columns[column].type === 'ai-trigger' && (

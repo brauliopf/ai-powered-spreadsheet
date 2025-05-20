@@ -62,7 +62,7 @@ export default function SpreadsheetPage() {
     [columns]
   );
 
-  // Run AI Functions when columns or rows change. Keep track of processed rows with useRef
+  // Run AI Functions when columns or rows change. Keep track of processed rows with processedRows.current
   useEffect(() => {
     // find ai-trigger columns. return if none.
     const aiTriggerColumns = Object.keys(columns).filter(
@@ -288,6 +288,45 @@ export default function SpreadsheetPage() {
     }
   };
 
+  // Rename column handler
+  const renameColumn = (oldName: string, newName: string) => {
+    if (!newName || oldName === newName) return;
+    // Prevent duplicate column names
+    if (columns[newName]) return;
+    const newColumns: Record<string, ColumnConfig> = {};
+    for (const col of Object.keys(columns)) {
+      if (col === oldName) {
+        newColumns[newName] = columns[oldName];
+      } else {
+        newColumns[col] = columns[col];
+      }
+    }
+    setColumns(newColumns);
+    // Update all rows
+    setRows((prevRows) =>
+      prevRows.map((row) => {
+        const newRow = { ...row };
+        newRow[newName] = newRow[oldName];
+        delete newRow[oldName];
+        return newRow;
+      })
+    );
+  };
+
+  const deleteColumn = (columnName: string) => {
+    const newColumns = { ...columns };
+    delete newColumns[columnName];
+    setColumns(newColumns);
+  };
+
+  const switchColumnType = (columnName: string) => {
+    if (columns[columnName].type === 'regular') {
+      setColumns({ ...columns, [columnName]: { type: 'ai-trigger' } });
+    } else {
+      setColumns({ ...columns, [columnName]: { type: 'regular' } });
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <header className="border-b p-4 bg-white">
@@ -326,6 +365,9 @@ export default function SpreadsheetPage() {
             onAddRow={addRow}
             onAddColumn={addColumn}
             onTriggerAIFunction={triggerAIFunction}
+            onRenameColumn={renameColumn}
+            onDeleteColumn={deleteColumn}
+            onSwitchColumnType={switchColumnType}
           />
         </div>
       </main>

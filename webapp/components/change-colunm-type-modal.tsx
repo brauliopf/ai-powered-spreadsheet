@@ -46,7 +46,7 @@ export default function ChangeColumnTypeModal({
               value={prompt}
               placeholder="Enter prompt to generate content for all cells"
               onChange={(e) => setPrompt(e.target.value)}
-              disabled={true}
+              disabled={false}
               className="min-h-[80px]"
             />
             <Button onClick={() => onSubmit(targetColumn, prompt)}>

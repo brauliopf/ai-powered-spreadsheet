@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
 
-export default function ChangeColumnTypeModal({
+export default function EditAiColumnModal({
   children,
   targetColumn,
   onSubmit,

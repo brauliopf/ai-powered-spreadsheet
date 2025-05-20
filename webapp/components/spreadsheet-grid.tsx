@@ -10,7 +10,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import ChangeColumnTypeModal from './change-colunm-type-modal';
+import EditAiColumnModal from './edit-ai-column-modal';
 import { useCellHandlers } from '@/hooks/use-cell-handlers';
 import { useColumnHeaderHandlers } from '@/hooks/use-column-header-handlers';
 
@@ -100,29 +100,14 @@ export default function SpreadsheetGrid({
                         column
                       )}
                     </span>
-                    <div className="flex items-center gap-2">
-                      {/* DELETE COLUMN */}
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger>
-                            <X
-                              className="h-3.5 w-3.5 cursor-pointer hover:text-red-500"
-                              onClick={() => onDeleteColumn(column)}
-                            />
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p className="text-xs">Delete column</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-
+                    <div className="flex items-center gap-3">
                       {columns[column].type === 'regular' ? (
                         // REGULAR COLUMN - CONVERT TO AI-TRIGGER
-                        <ChangeColumnTypeModal
+                        <EditAiColumnModal
                           targetColumn={column}
                           onSubmit={onToggleColumnType}
                         >
-                          <div className="h-6 w-6 p-0">
+                          <div>
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger>
@@ -138,12 +123,12 @@ export default function SpreadsheetGrid({
                               </Tooltip>
                             </TooltipProvider>
                           </div>
-                        </ChangeColumnTypeModal>
+                        </EditAiColumnModal>
                       ) : (
                         // AI-TRIGGER COLUMN - EDIT PROMPT OR CONVERT TO REGULAR
                         <>
                           {/* EDIT AI-TRIGGER COLUMN PROMPT */}
-                          <ChangeColumnTypeModal
+                          <EditAiColumnModal
                             targetColumn={column}
                             onSubmit={(targetColumn, newPrompt) => {
                               console.log(
@@ -155,7 +140,7 @@ export default function SpreadsheetGrid({
                             }}
                             initialPrompt={columns[column].prompt}
                           >
-                            <div className="h-6 w-6 p-0">
+                            <div>
                               <TooltipProvider>
                                 <Tooltip>
                                   <TooltipTrigger>
@@ -167,7 +152,7 @@ export default function SpreadsheetGrid({
                                 </Tooltip>
                               </TooltipProvider>
                             </div>
-                          </ChangeColumnTypeModal>
+                          </EditAiColumnModal>
                           {/* CONVERT TO REGULAR */}
                           <TooltipProvider>
                             <Tooltip>
@@ -184,6 +169,20 @@ export default function SpreadsheetGrid({
                           </TooltipProvider>
                         </>
                       )}
+                      {/* DELETE COLUMN */}
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <X
+                              className="h-3.5 w-3.5 cursor-pointer hover:text-red-500"
+                              onClick={() => onDeleteColumn(column)}
+                            />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="text-xs">Delete column</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
                   </div>
                   <div className="absolute bottom-0 left-0 w-full h-0.5">
